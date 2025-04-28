@@ -22,6 +22,6 @@
 {% if shop.metafields.hulkapps_wishlist.hulkapps_wishlist_buttonstyle.individual_button_font_thickness != null  %}
     {% assign fontWeight = shop.metafields.hulkapps_wishlist.hulkapps_wishlist_buttonstyle.individual_button_font_thickness %}
 {% endif %}
-<a href="#" style="display: {{ display }}; color: {{ color }}; font-size: {{ fontSize }}px; font-weight: {{ fontWeight }}" class="addtoWishlist" data-hulkSaveForLater data-product-id="{{ productId }}" data-variant-id="{{ variantId }}" data-line="{{ loopIndex | plus: 1 }}">
+<a href="#" style="display: {{ display }}; color: {{ color }}; font-size: {{ fontSize }}px; font-weight: {{ fontWeight }}" class="addtoWishlist" data-hulkSaveForLater data-product-id="{{ productId }}" data-variant-id="{{ variantId }}" data-line="{{ loopIndex }}">
     Save for later
 </a>

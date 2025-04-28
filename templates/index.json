@@ -49,6 +49,49 @@
         "show_text_below": false
       }
     },
+    "rich_text_qM6qWx": {
+      "type": "rich-text",
+      "blocks": {
+        "heading_M8WyK7": {
+          "type": "heading",
+          "settings": {
+            "heading": "Build your own bundle",
+            "heading_size": "h1"
+          }
+        },
+        "text_iEEHT3": {
+          "type": "text",
+          "disabled": true,
+          "settings": {
+            "text": "<p>Share information about your brand with your customers. Describe a product, make announcements, or welcome customers to your store.</p>"
+          }
+        },
+        "button_CF8FpH": {
+          "type": "button",
+          "settings": {
+            "button_label": "Explore bundle",
+            "button_link": "https://abhineet-dev.myshopify.com/apps/gbb/easybundle/1",
+            "button_style_secondary": true,
+            "button_label_2": "",
+            "button_link_2": "",
+            "button_style_secondary_2": false
+          }
+        }
+      },
+      "block_order": [
+        "heading_M8WyK7",
+        "text_iEEHT3",
+        "button_CF8FpH"
+      ],
+      "settings": {
+        "desktop_content_position": "center",
+        "content_alignment": "center",
+        "color_scheme": "",
+        "full_width": true,
+        "padding_top": 40,
+        "padding_bottom": 52
+      }
+    },
     "featured_collection": {
       "type": "featured-collection",
       "settings": {
@@ -149,6 +192,7 @@
   },
   "order": [
     "image_banner",
+    "rich_text_qM6qWx",
     "featured_collection",
     "featured_product_zb4jUJ"
   ]
