@@ -89,6 +89,8 @@
             {%- case block.type -%}
               {%- when '@app' -%}
                 {% render block %}
+              {% when 'add-ons' %}
+                {% render 'product-add-ons', block_obj: block, product: product, product_form_id: product_form_id %}
               {%- when 'text' -%}
                 <p
                   class="product__text inline-richtext{% if block.settings.text_style == 'uppercase' %} caption-with-letter-spacing{% elsif block.settings.text_style == 'subtitle' %} subtitle{% endif %}"
@@ -732,6 +734,18 @@
   "blocks": [
     {
       "type": "@app"
+    },
+    {
+      "type": "add-ons",
+      "name": "Add-ons",
+      "settings": [
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Add-ons"
+        }
+      ]
     },
     {
       "type": "text",
