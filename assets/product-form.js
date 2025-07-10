@@ -193,7 +193,7 @@ class ProductAddOnForm extends HTMLElement {
       totalAddOnPrice += parseFloat(input.dataset.addOnPrice || 0);
     });
 
-    const productRegularPriceAllEle = document.body.querySelectorAll('[data-variant-regular-price]');
+    const productRegularPriceAllEle = document.querySelectorAll('.price-item [data-variant-regular-price]');
     productRegularPriceAllEle.forEach((ele) => {
       const basePrice = parseFloat(ele.dataset.variantRegularPrice || 0);
       const newPrice = ((basePrice + totalAddOnPrice) / 100).toFixed(2);
@@ -205,7 +205,7 @@ class ProductAddOnForm extends HTMLElement {
       }
     });
 
-    const productSalePriceAllEle = document.body.querySelectorAll('[data-variant-sale-price]');
+    const productSalePriceAllEle = document.querySelectorAll('.price-item [data-variant-sale-price]');
     productSalePriceAllEle.forEach((ele) => {
       const baseSalePrice = parseFloat(ele.dataset.variantSalePrice || 0);
       const newSalePrice = ((baseSalePrice + totalAddOnPrice) / 100).toFixed(2);
@@ -229,8 +229,6 @@ class ProductAddOnForm extends HTMLElement {
         quantity: 1,
         properties: {
           'Main product': mainProductName,
-          '_private-attribute': "checking single _ private attribute",
-          '__private-attribute': "checking double __ private attribute",
         }
       }));
 
