@@ -5,12 +5,109 @@ class CartRemoveButton extends HTMLElement {
     this.addEventListener('click', (event) => {
       event.preventDefault();
       const cartItems = this.closest('cart-items') || this.closest('cart-drawer-items');
-      cartItems.updateQuantity(this.dataset.index, 0, event);
+
+      if (this.dataset.hasAddOns && this.dataset.hasAddOns.trim() !== '') {
+        this.removeItems(cartItems, event);
+      } else {
+        cartItems.updateQuantity(this.dataset.index, 0, event);
+      }
     });
+  }
+
+  removeItems(cartItems, event) {
+    const handles = this.dataset.hasAddOns
+      .split(',')
+      .map(str => str.trim().match(/^\d+\.\s*(.+)$/)?.[1]?.trim())
+      .filter(Boolean);
+
+    const mainProductQuantity = parseInt(this.dataset.itemQuantity) || 1;
+
+    const addonItems = Array.from(cartItems.querySelectorAll('.cart-item')).filter(item => {
+      const itemHandle = item.dataset.itemHandle || '';
+      return handles.some(handle => itemHandle === handle && item.dataset.isAddonProduct === 'true');
+    });
+
+    let updates = {};
+
+    addonItems.forEach(item => {
+      const lineId = item.dataset.lineItemKey;
+      const currentQuantity = parseInt(item.dataset.itemQuantity) || 0;
+      const newQuantity = Math.max(0, currentQuantity - mainProductQuantity);
+
+      if (lineId) {
+        updates[lineId] = newQuantity;
+      }
+    });
+
+    if (this.dataset.lineItemKey) {
+      updates[this.dataset.lineItemKey] = 0;
+    }
+    
+    const mainLine = this.dataset.index;
+    if (mainLine) {
+      cartItems.enableLoading(mainLine);
+    }
+
+    fetch(window.Shopify.routes.root + 'cart/update.js', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ updates })
+    })
+      .then(response => response.json())
+      .then(updateResponse => {
+        const sections = cartItems.getSectionsToRender().map((section) => section.section).join(',');
+        return fetch(`${routes.cart_url}?sections=${sections}`)
+          .then(response => response.json())
+          .then(sectionsResponse => ({ updateResponse, sectionsResponse }));
+      })
+      .then(({ updateResponse, sectionsResponse }) => {
+
+        const isEmpty = updateResponse.item_count === 0;
+
+        cartItems.classList.toggle('is-empty', isEmpty);
+        const cartDrawerWrapper = document.querySelector('cart-drawer');
+        const cartFooter = document.getElementById('main-cart-footer');
+
+        if (cartFooter) cartFooter.classList.toggle('is-empty', isEmpty);
+        if (cartDrawerWrapper) cartDrawerWrapper.classList.toggle('is-empty', isEmpty);
+
+        cartItems.getSectionsToRender().forEach((section) => {
+          const elementToReplace = document.getElementById(section.id).querySelector(section.selector) || document.getElementById(section.id);
+
+          if (elementToReplace && sectionsResponse[section.section]) {
+            elementToReplace.innerHTML = cartItems.getSectionInnerHTML(
+              sectionsResponse[section.section],
+              section.selector
+            );
+          }
+        });
+
+        // Publish cart update event
+        publish(PUB_SUB_EVENTS.cartUpdate, {
+          source: 'cart-items',
+          cartData: updateResponse,
+          variantId: this.dataset.variantId
+        });
+      })
+      .catch((error) => {
+        console.error('Error updating cart:', error);
+        cartItems.querySelectorAll('.loading__spinner').forEach((overlay) => overlay.classList.add('hidden'));
+        const errors = document.getElementById('cart-errors') || document.getElementById('CartDrawer-CartErrors');
+        errors.textContent = window.cartStrings.error;
+      })
+      .finally(() => {
+        // Disable loading state
+        if (mainLine) {
+          cartItems.disableLoading(mainLine);
+        }
+      });
   }
 }
 
 customElements.define('cart-remove-button', CartRemoveButton);
+
 
 class CartItems extends HTMLElement {
   constructor() {
