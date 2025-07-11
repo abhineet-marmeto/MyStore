@@ -1449,6 +1449,65 @@
         "id": "cart_color_scheme",
         "label": "t:sections.all.colors.label",
         "default": "scheme-1"
+      },
+      {
+        "type": "header",
+        "content": "Freebie products settings"
+      },
+      {
+        "type": "checkbox",
+        "id": "enable_freebies",
+        "label": "Enable freebies",
+        "default": false
+      },
+      {
+        "type": "text",
+        "id": "cart_value_threshold_1",
+        "label": "Cart value threshold 1",
+        "info": "Enter the minimum cart value to apply the first freebie product"
+      },
+      {
+        "type": "product",
+        "id": "freebie_product_1",
+        "label": "Freebie product 1",
+      },
+      {
+        "type": "text",
+        "id": "cart_value_threshold_2",
+        "label": "Cart value threshold 2",
+        "info": "Enter the minimum cart value to apply the second freebie product"
+      },
+      {
+        "type": "product",
+        "id": "freebie_product_2",
+        "label": "Freebie product 2",
+      },
+      {
+        "type": "text",
+        "id": "cart_value_threshold_3",
+        "label": "Cart value threshold 3",
+        "info": "Enter the minimum cart value to apply the third freebie product"
+      },
+      {
+        "type": "product",
+        "id": "freebie_product_3",
+        "label": "Freebie product 3",
+      },
+      {
+        "type": "header",
+        "content": "Specific product freebie settings"
+      },
+      {
+        "type": "product",
+        "id": "unlock_trigger_product",
+        "label": "Unlock trigger product",
+        "info": "Select a product that will unlock the freebie products when added to the cart"
+      },
+      {
+        "type": "product",
+        "id": "unlocked_freebie_product",
+        "label": "Unlocked freebie product",
+        "info": "Select a freebie product that will be added to the cart when the unlock trigger product is added"
       }
     ]
   }

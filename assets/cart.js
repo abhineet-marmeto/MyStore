@@ -292,3 +292,191 @@ if (!customElements.get('cart-note')) {
     }
   );
 }
+
+const CART_EVENTS = [
+  {
+    event: 'cartUpdate',
+    eventType: 'PUB_SUB_EVENTS',
+    handler: debounce(syncWindowCart, 200),
+  },
+  {
+    event: 'cartError',
+    eventType: 'PUB_SUB_EVENTS',
+    handler: debounce(syncWindowCart, 200),
+  }
+];
+
+CART_EVENTS.forEach(({ event, eventType, handler }) => {
+  if (eventType === 'PUB_SUB_EVENTS' && typeof PUB_SUB_EVENTS?.[event] !== 'undefined') {
+    subscribe(PUB_SUB_EVENTS[event], handler);
+  }
+
+  if (eventType === 'DOM_EVENT') {
+    window.addEventListener(event, handler);
+  }
+});
+
+function syncWindowCart(event) {
+  fetch('/cart.js')
+    .then((res) => res.json())
+    .then((data) => {
+      window.cart = data;
+      if (event?.source !== 'freebie-cart-sync') {
+        publish(PUB_SUB_EVENTS.windowCartUpdated, {
+          source: 'window-cart-sync',
+          cartData: data
+        });
+      }
+    })
+    .catch((err) => console.error('Failed to fetch /cart.js', err));
+}
+
+class FreebieCartAutoSync extends HTMLElement {
+  constructor() {
+    super();
+    this.thresholdFreebieEnabled = window.freebieRulesEnabled === true;
+    this.cartFreebies = window.cartValueFreebies || [];
+    this.productUnlock = window.productUnlockFreebie || null;
+    this.processing = false;
+  }
+
+  connectedCallback() {
+    if (!this.thresholdFreebieEnabled) return;
+    this.cartItems = document.querySelector('cart-items') || document.querySelector('cart-drawer-items');
+    this.unsubscribe = subscribe(PUB_SUB_EVENTS.cartUpdate, this.handleCartSync.bind(this));
+  }
+
+  async handleCartSync() {
+    if (this.processing) return;
+    this.processing = true;
+
+    try {
+      const cart = await fetch('/cart.js').then(res => res.json());
+      window.cart = cart;
+
+      const changes = this.calculateFreebieChanges(cart);
+
+      if (changes.toAdd.length > 0 || changes.toRemove.length > 0) {
+        await this.applyChanges(changes);
+        await this.refreshCart();
+      }
+    } catch (error) {
+      console.error('[FreebieCartAutoSync] Error:', error);
+    }
+
+    this.processing = false;
+  }
+
+  calculateFreebieChanges(cart) {
+    const cartTotal = cart.total_price / 100;
+    const items = cart.items || [];
+    const freebieItems = items.filter(item => item.properties?.['Freebie product'] === true);
+
+    const toAdd = [];
+    const toRemove = [];
+
+    this.cartFreebies.forEach(rule => {
+      const hasFreebieInCart = freebieItems.some(item => item.variant_id === rule.variantId);
+
+      if (cartTotal >= rule.threshold && !hasFreebieInCart && rule.inStock) {
+        toAdd.push(rule.variantId);
+      } else if (cartTotal < rule.threshold && hasFreebieInCart) {
+        const freebieItem = freebieItems.find(item => item.variant_id === rule.variantId);
+        toRemove.push(freebieItem.key);
+      }
+    });
+
+
+    if (this.productUnlock) {
+      const { triggerProductId, freebieVariantId, inStock } = this.productUnlock;
+      const hasTriggerProduct = items.some(item => item.product_id === triggerProductId);
+      const hasUnlockFreebie = freebieItems.some(item => item.variant_id === freebieVariantId);
+
+      if (!hasUnlockFreebie && inStock && hasTriggerProduct) {
+        toAdd.push(freebieVariantId);
+      } else if (hasUnlockFreebie && !hasTriggerProduct) {
+        const freebieItem = freebieItems.find(item => item.variant_id === freebieVariantId);
+        if (freebieItem) toRemove.push(freebieItem.key);
+      }
+    }
+
+
+    return { toAdd, toRemove };
+  }
+
+  async applyChanges(changes) {
+    const operations = [];
+
+    if (changes.toRemove.length > 0) {
+      const updates = {};
+      changes.toRemove.forEach(key => updates[key] = 0);
+
+      operations.push(
+        fetch('/cart/update.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ updates })
+        })
+      );
+    }
+
+    if (changes.toAdd.length > 0) {
+      const items = changes.toAdd.map(variantId => ({
+        id: variantId,
+        quantity: 1,
+        properties: { 'Freebie product': true }
+      }));
+
+      operations.push(
+        fetch('/cart/add.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items })
+        })
+      );
+    }
+
+    if (operations.length > 0) {
+      await Promise.all(operations);
+    }
+  }
+
+  async refreshCart() {
+    if (!this.cartItems) return;
+
+    try {
+      this.sectionsToRender = this.cartItems.getSectionsToRender().map(section => section.section).join(',');
+
+      const [cartData, sectionsResponse] = await Promise.all([
+        fetch('/cart.js').then(res => res.json()),
+        fetch(`${routes.cart_url}?sections=${this.sectionsToRender}`).then(res => res.json())
+      ]);
+
+      window.cart = cartData;
+
+      const isEmpty = cartData.item_count === 0;
+      this.cartItems.classList.toggle('is-empty', isEmpty);
+
+      const cartFooter = document.getElementById('main-cart-footer');
+      const cartDrawer = document.querySelector('cart-drawer');
+      if (cartFooter) cartFooter.classList.toggle('is-empty', isEmpty);
+      if (cartDrawer) cartDrawer.classList.toggle('is-empty', isEmpty);
+
+      this.cartItems.getSectionsToRender().forEach(section => {
+        const element = document.getElementById(section.id)?.querySelector(section.selector) || document.getElementById(section.id);
+        if (element && sectionsResponse[section.section]) {
+          element.innerHTML = this.cartItems.getSectionInnerHTML(sectionsResponse[section.section], section.selector);
+        }
+      });
+
+    } catch (error) {
+      console.error('[FreebieCartAutoSync] Refresh error:', error);
+    }
+  }
+
+  disconnectedCallback() {
+    if (this.unsubscribe) this.unsubscribe();
+  }
+}
+
+customElements.define('freebie-cart-auto-sync', FreebieCartAutoSync);
