@@ -321,29 +321,30 @@
     </main>
 
     <script>
-      window.freebieRulesEnabled = {{ settings.enable_freebies | default: false }};
-      window.cartValueFreebies = [
-        {
-          threshold: {{ settings.cart_value_threshold_1 | default: "null" }},
-          variantId: {{ settings.freebie_product_1.selected_or_first_available_variant.id | default: "null" }},
-          inStock: {{ settings.freebie_product_1.selected_or_first_available_variant.available | default: false }}
-        },
-        {
-          threshold: {{ settings.cart_value_threshold_2 | default: "null" }},
-          variantId: {{ settings.freebie_product_2.selected_or_first_available_variant.id | default: "null" }},
-          inStock: {{ settings.freebie_product_2.selected_or_first_available_variant.available | default: false }}
-        },
-        {
-          threshold: {{ settings.cart_value_threshold_3 | default: "null" }},
-          variantId: {{ settings.freebie_product_3.selected_or_first_available_variant.id | default: "null" }},
-          inStock: {{ settings.freebie_product_3.selected_or_first_available_variant.available | default: false }}
+      window.freebieConfig = {
+        enabled: {{ settings.enable_freebies | default: false }},
+        valueFreebies: [
+          {
+            threshold: Number({{ settings.cart_value_threshold_1 | default: "null" }}),
+            variantId: Number({{ settings.freebie_product_1.selected_or_first_available_variant.id | default: "null" }}),
+            inStock: Boolean({{ settings.freebie_product_1.selected_or_first_available_variant.available | default: false }})
+          },
+          {
+            threshold: Number({{ settings.cart_value_threshold_2 | default: "null" }}),
+            variantId: Number({{ settings.freebie_product_2.selected_or_first_available_variant.id | default: "null" }}),
+            inStock: Boolean({{ settings.freebie_product_2.selected_or_first_available_variant.available | default: false }})
+          },
+          {
+            threshold: Number({{ settings.cart_value_threshold_3 | default: "null" }}),
+            variantId: Number({{ settings.freebie_product_3.selected_or_first_available_variant.id | default: "null" }}),
+            inStock: Boolean({{ settings.freebie_product_3.selected_or_first_available_variant.available | default: false }})
+          }
+        ],
+        productUnlock: {
+          triggerProductId: Number({{ settings.unlock_trigger_product.id | default: "null" }}),
+          freebieVariantId: Number({{ settings.unlocked_freebie_product.selected_or_first_available_variant.id | default: "null" }}),
+          inStock: Boolean({{ settings.unlocked_freebie_product.selected_or_first_available_variant.available | default: false }})
         }
-      ];
-
-      window.productUnlockFreebie = {
-        triggerProductId: {{ settings.unlock_trigger_product.id | default: "null" }},
-        freebieVariantId: {{ settings.unlocked_freebie_product.selected_or_first_available_variant.id | default: "null" }},
-        inStock: {{ settings.unlocked_freebie_product.selected_or_first_available_variant.available | default: false }},
       };
     </script>
 

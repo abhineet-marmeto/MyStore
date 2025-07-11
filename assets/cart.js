@@ -331,19 +331,28 @@ function syncWindowCart(event) {
     .catch((err) => console.error('Failed to fetch /cart.js', err));
 }
 
+
 class FreebieCartAutoSync extends HTMLElement {
   constructor() {
     super();
-    this.thresholdFreebieEnabled = window.freebieRulesEnabled === true;
-    this.cartFreebies = window.cartValueFreebies || [];
-    this.productUnlock = window.productUnlockFreebie || null;
+    this.freebiesConfig = window.freebieConfig || {};
     this.processing = false;
+    this.unsubscribe = null;
+    this.cartItems = null;
   }
 
   connectedCallback() {
-    if (!this.thresholdFreebieEnabled) return;
+    if (!this.freebiesConfig.enabled) return;
     this.cartItems = document.querySelector('cart-items') || document.querySelector('cart-drawer-items');
-    this.unsubscribe = subscribe(PUB_SUB_EVENTS.cartUpdate, this.handleCartSync.bind(this));
+    if (!this.cartItems) return;
+    this.cartValueFreebies = this.freebiesConfig.valueFreebies || [];
+    this.unsubscribe = typeof subscribe === 'function'
+      ? subscribe(PUB_SUB_EVENTS.cartUpdate, this.handleCartSync.bind(this))
+      : null;
+  }
+
+  disconnectedCallback() {
+    if (typeof this.unsubscribe === 'function') this.unsubscribe();
   }
 
   async handleCartSync() {
@@ -351,7 +360,8 @@ class FreebieCartAutoSync extends HTMLElement {
     this.processing = true;
 
     try {
-      const cart = await fetch('/cart.js').then(res => res.json());
+      const cart = await this.fetchCart();
+      if (!cart) throw new Error('Cart fetch failed');
       window.cart = cart;
 
       const changes = this.calculateFreebieChanges(cart);
@@ -362,55 +372,64 @@ class FreebieCartAutoSync extends HTMLElement {
       }
     } catch (error) {
       console.error('[FreebieCartAutoSync] Error:', error);
+    } finally {
+      this.processing = false;
     }
+  }
 
-    this.processing = false;
+  async fetchCart() {
+    try {
+      const res = await fetch('/cart.js');
+      if (!res.ok) throw new Error('Network error');
+      return await res.json();
+    } catch (err) {
+      console.error('[FreebieCartAutoSync] Failed to fetch cart:', err);
+      return null;
+    }
   }
 
   calculateFreebieChanges(cart) {
-    const cartTotal = cart.total_price / 100;
-    const items = cart.items || [];
+    const cartTotal = Number(cart.total_price) / 100;
+    const items = Array.isArray(cart.items) ? cart.items : [];
     const freebieItems = items.filter(item => item.properties?.['Freebie product'] === true);
 
     const toAdd = [];
     const toRemove = [];
 
-    this.cartFreebies.forEach(rule => {
-      const hasFreebieInCart = freebieItems.some(item => item.variant_id === rule.variantId);
+    this.cartValueFreebies.forEach(rule => {
+      if (!rule.variantId || typeof rule.threshold !== 'number') return;
+      const hasFreebie = freebieItems.some(item => item.variant_id === rule.variantId);
 
-      if (cartTotal >= rule.threshold && !hasFreebieInCart && rule.inStock) {
+      if (cartTotal >= rule.threshold && !hasFreebie && rule.inStock) {
         toAdd.push(rule.variantId);
-      } else if (cartTotal < rule.threshold && hasFreebieInCart) {
+      } else if (cartTotal < rule.threshold && hasFreebie) {
         const freebieItem = freebieItems.find(item => item.variant_id === rule.variantId);
-        toRemove.push(freebieItem.key);
+        if (freebieItem) toRemove.push(freebieItem.key);
       }
     });
 
+    const unlock = this.freebiesConfig.productUnlock;
+    if (unlock && unlock.triggerProductId && unlock.freebieVariantId) {
+      const hasTrigger = items.some(item => item.product_id === unlock.triggerProductId);
+      const hasUnlockFreebie = freebieItems.some(item => item.variant_id === unlock.freebieVariantId);
 
-    if (this.productUnlock) {
-      const { triggerProductId, freebieVariantId, inStock } = this.productUnlock;
-      const hasTriggerProduct = items.some(item => item.product_id === triggerProductId);
-      const hasUnlockFreebie = freebieItems.some(item => item.variant_id === freebieVariantId);
-
-      if (!hasUnlockFreebie && inStock && hasTriggerProduct) {
-        toAdd.push(freebieVariantId);
-      } else if (hasUnlockFreebie && !hasTriggerProduct) {
-        const freebieItem = freebieItems.find(item => item.variant_id === freebieVariantId);
+      if (!hasUnlockFreebie && unlock.inStock && hasTrigger) {
+        toAdd.push(unlock.freebieVariantId);
+      } else if (hasUnlockFreebie && !hasTrigger) {
+        const freebieItem = freebieItems.find(item => item.variant_id === unlock.freebieVariantId);
         if (freebieItem) toRemove.push(freebieItem.key);
       }
     }
 
-
     return { toAdd, toRemove };
   }
 
-  async applyChanges(changes) {
+  async applyChanges({ toAdd, toRemove }) {
     const operations = [];
 
-    if (changes.toRemove.length > 0) {
+    if (toRemove.length > 0) {
       const updates = {};
-      changes.toRemove.forEach(key => updates[key] = 0);
-
+      toRemove.forEach(key => { updates[key] = 0; });
       operations.push(
         fetch('/cart/update.js', {
           method: 'POST',
@@ -420,13 +439,12 @@ class FreebieCartAutoSync extends HTMLElement {
       );
     }
 
-    if (changes.toAdd.length > 0) {
-      const items = changes.toAdd.map(variantId => ({
+    if (toAdd.length > 0) {
+      const items = toAdd.map(variantId => ({
         id: variantId,
         quantity: 1,
         properties: { 'Freebie product': true }
       }));
-
       operations.push(
         fetch('/cart/add.js', {
           method: 'POST',
@@ -442,16 +460,15 @@ class FreebieCartAutoSync extends HTMLElement {
   }
 
   async refreshCart() {
-    if (!this.cartItems) return;
+    if (!this.cartItems || typeof this.cartItems.getSectionsToRender !== 'function') return;
 
     try {
-      this.sectionsToRender = this.cartItems.getSectionsToRender().map(section => section.section).join(',');
-
+      const sectionsToRender = this.cartItems.getSectionsToRender().map(s => s.section).join(',');
       const [cartData, sectionsResponse] = await Promise.all([
-        fetch('/cart.js').then(res => res.json()),
-        fetch(`${routes.cart_url}?sections=${this.sectionsToRender}`).then(res => res.json())
+        this.fetchCart(),
+        fetch(`${routes.cart_url}?sections=${sectionsToRender}`).then(res => res.json())
       ]);
-
+      if (!cartData) return;
       window.cart = cartData;
 
       const isEmpty = cartData.item_count === 0;
@@ -468,14 +485,9 @@ class FreebieCartAutoSync extends HTMLElement {
           element.innerHTML = this.cartItems.getSectionInnerHTML(sectionsResponse[section.section], section.selector);
         }
       });
-
     } catch (error) {
       console.error('[FreebieCartAutoSync] Refresh error:', error);
     }
-  }
-
-  disconnectedCallback() {
-    if (this.unsubscribe) this.unsubscribe();
   }
 }
 
