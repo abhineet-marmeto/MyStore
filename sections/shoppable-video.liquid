@@ -1,0 +1,486 @@
+{% comment %} shoppable-video.liquid {% endcomment %}
+
+{{ 'shoppable-video.css' | asset_url | stylesheet_tag }}
+<script src="{{ 'shoppable-video.js' | asset_url }}" defer="defer"></script>
+<script src="{{ 'share.js' | asset_url }}" defer="defer"></script>
+<script src="{{ 'product-info.js' | asset_url }}" defer="defer"></script>
+<script src="{{ 'product-form.js' | asset_url }}" defer="defer"></script>
+
+{% style %}
+  .section-{{ section.id }}-padding {
+    padding-top: calc({{ section.settings.padding_top | times: 0.75 | round: 0 }}px);
+    padding-bottom: calc({{ section.settings.padding_bottom | times: 0.75 | round: 0 }}px);
+  }
+
+  @media screen and (min-width: 750px) {
+    .section-{{ section.id }}-padding {
+      padding-top: {{ section.settings.padding_top }}px;
+      padding-bottom: {{ section.settings.padding_bottom }}px;
+    }
+  }
+{% endstyle %}
+
+{% capture main_carousel_options %}
+  {
+    "desktopPerPage": {{ section.settings.desktop_per_page | default: 2 }},
+    "mobilePerPage": {{ section.settings.mobile_per_page | default: 1 }},
+    "gap": "{{ section.settings.gap_between_slides_on_desktop | default: '1' }}rem",
+    "gapMobile": "{{ section.settings.gap_between_slides_on_mobile | default: '0.5' }}rem",
+    "showArrows": {{ section.settings.show_navigation | default: false }},
+    "showArrowsOnMobile": {{ section.settings.show_navigation | default: false }},
+    "autoplay": {{ section.settings.enable_autoplay | default: false }},
+    "autoplaySpeed": {{ section.settings.autoplay_speed | times: 1000 | default: 1000 }},
+    "showDots": {{ section.settings.show_dots_on_desktop | default: false }},
+    "showDotsOnMobile": {{ section.settings.show_dots_on_mobile | default: false }},
+    "mobilePaddingLeft": "{{ section.settings.mobile_padding_left | default: '10' }}%",
+    "mobilePaddingRight": "{{ section.settings.mobile_padding_right | default: '10' }}%",
+    "desktopPaddingLeft": "{{ section.settings.desktop_padding_left | default: '10' }}%",
+    "desktopPaddingRight": "{{ section.settings.desktop_padding_right | default: '10' }}%",
+    "destroyOnDesktop": {{ section.settings.disable_desktop_slider | default: false }},
+    "destroyOnMobile": {{ section.settings.disable_mobile_slider | default: false }},
+    "enableProgressBar": {{ section.settings.enable_progress_bar | default: false }},
+    "enableScrollBar": {{ section.settings.enable_scroll_bar | default: false }},
+    "disableDrag": {{ section.settings.disable_drag | default: false }},
+    "focus": {% if section.settings.focus_center %}"center"{% else %}false{% endif %}
+  }
+{% endcapture %}
+
+<div class="color-{{ section.settings.color_scheme }}">
+  <div class="video-slider-section  section-{{ section.id }}-padding{% if section.settings.page_width %} page-width{% endif %}">
+    <div class="title-wrapper title-wrapper--no-top-margin page-width">
+      {%- if section.settings.title != blank -%}
+        <h2 class="title inline-richtext {{ section.settings.heading_size }}{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--slide-in{% endif %}">
+          {{ section.settings.title }}
+        </h2>
+      {%- endif -%}
+      {%- if section.settings.description != blank -%}
+        <div class="collection__description {{ section.settings.description_style }} rte{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--slide-in{% endif %}">
+          {{ section.settings.description }}
+        </div>
+      {%- endif -%}
+    </div>
+
+    <carousel-component
+      data-carousel-options='{{ main_carousel_options }}'
+      class="video-slider-container{% if settings.animations_reveal_on_scroll %} scroll-trigger animate--slide-in{% endif %}"
+    >
+      <div class="swiper video-main-swiper is-loading" id="videoMainSwiper-{{ section.id }}">
+        <div class="swiper-wrapper shoppable-video__wrapper">
+          {%- for block in section.blocks -%}
+            <div class="swiper-slide video-slide" data-block-id="{{ block.id }}" {{ block.shopify_attributes }}>
+              <modal-button data-target="videoModal" class="video-slide-item-container">
+                <custom-video data-intersection-pause-type="in-view" data-video-state="" class="video-slide-item">
+                  {%- if block.settings.video != blank -%}
+                    {{ block.settings.video | video_tag: autoplay: true, loop: true, muted: true, controls: false }}
+                  {%- else -%}
+                    <div class="video-placeholder">
+                      <p>No Video</p>
+                    </div>
+                  {%- endif -%}
+                </custom-video>
+                {%- assign selected_products = block.settings.products_list -%}
+                {%- for product in selected_products limit: 1 -%}
+                  {%- if product != blank -%}
+                    <div
+                      class="slide-product-card"
+                      data-product-handle="{{ product.selected_or_first_available_variant.handle }}"
+                    >
+                      <div class="product-image-container">
+                        {% render 'responsive-picture', desktopImage: product.featured_image %}
+                      </div>
+                      <div class="product-info-container">
+                        <div class="product-title one-line-text">
+                          {{- product.title | truncate: 30 -}}
+                        </div>
+                      </div>
+                    </div>
+                  {%- endif -%}
+                {%- endfor -%}
+              </modal-button>
+            </div>
+          {%- endfor -%}
+        </div>
+      </div>
+      {%- if section.settings.show_navigation -%}
+        <div class="swiper-button-next nav-btn"></div>
+        <div class="swiper-button-prev nav-btn"></div>
+      {%- endif -%}
+    </carousel-component>
+  </div>
+</div>
+
+{% capture modal_carousel_options %}
+  {
+    "desktopPerPage": 3,
+    "mobilePerPage": {{ section.settings.mobile_per_page | default: 1 }},
+    "gap": "{{ section.settings.gap_between_slides_on_desktop | default: '1' }}rem",
+    "gapMobile": "{{ section.settings.gap_between_slides_on_mobile | default: '0.5' }}rem",
+    "showArrows": {{ section.settings.show_navigation | default: false }},
+    "showArrowsOnMobile": "false",
+    "autoplay": {{ section.settings.enable_autoplay | default: false }},
+    "autoplaySpeed": {{ section.settings.autoplay_speed | times: 1000 | default: 1000 }},
+    "showDots": {{ section.settings.show_dots_on_desktop | default: false }},
+    "showDotsOnMobile": "false",
+    "mobilePaddingLeft": "{{ section.settings.mobile_padding_left | default: '0' }}%",
+    "mobilePaddingRight": "{{ section.settings.mobile_padding_right | default: '0' }}%",
+    "desktopPaddingLeft": "{{ section.settings.desktop_padding_left | default: '0' }}%",
+    "desktopPaddingRight": "{{ section.settings.desktop_padding_right | default: '0' }}%",
+    "destroyOnDesktop": {{ section.settings.disable_desktop_slider | default: false }},
+    "destroyOnMobile": {{ section.settings.disable_mobile_slider | default: false }},
+    "enableProgressBar": {{ section.settings.enable_progress_bar | default: false }},
+    "enableScrollBar": {{ section.settings.enable_scroll_bar | default: false }},
+    "disableDrag": {{ section.settings.disable_drag | default: false }},
+    "focus": {% if section.settings.focus_center %}"center"{% else %}false{% endif %},
+    "effect": "coverflow",
+    "type": "loop"
+  }
+{% endcapture %}
+
+<modal-content id="videoModal" class="video-modal">
+  <modal-overlay class="modal-overlay"></modal-overlay>
+
+  <div class="video-modal-content">
+    <modal-close class="modal-close-btn">
+      <svg viewBox="0 0 24 24">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </modal-close>
+    <carousel-component
+      data-carousel-options='{{ modal_carousel_options }}'
+      class=""
+    >
+      <div class="swiper video-modal-swiper" id="videoModalSwiper">
+        <div class="swiper-wrapper">
+          {%- for block in section.blocks -%}
+            <div class="swiper-slide video-modal-slide" data-block-id="{{ block.id }}">
+              <div class="video-modal-slide-content">
+                <custom-video
+                  data-intersection-pause-type="active-slide"
+                  data-video-state=""
+                  class="modal-video-container"
+                >
+                  {%- if block.settings.video != blank -%}
+                    {{ block.settings.video | video_tag: autoplay: true, loop: true, muted: true, controls: false }}
+                  {%- endif -%}
+                </custom-video>
+
+                <carousel-component
+                  data-carousel-options='
+                    {
+                      "desktopPerPage": 1,
+                      "mobilePerPage": 1,
+                      "gap": "0.5rem",
+                      "gapMobile": "0.5rem",
+                      "showArrows": false,
+                      "showDots": false,
+                      "autoplay": false,
+                      "type": "slide",
+                      "nested": true
+                    }
+                  '
+                  class="products-swiper__container"
+                >
+                  <div class="swiper products-swiper">
+                    <div class="swiper-wrapper products-swiper__wrapper">
+                      {%- assign selected_products = block.settings.products_list -%}
+                      {%- for product in selected_products limit: 3 -%}
+                        {%- if product != blank -%}
+                          <div class="swiper-slide product-card__slide">
+                            <div
+                              class="mini-product-card"
+                              data-product-handle="{{ product.selected_or_first_available_variant.handle }}"
+                            >
+                              <div class="product-image-container">
+                                {% render 'responsive-picture', desktopImage: product.featured_image %}
+                              </div>
+                              <div class="product-info-container">
+                                {% assign product_form_id = 'quick-add-' | append: section.id | append: product.id %}
+
+                                <product-drawer-opener
+                                  class="product-title one-line-text"
+                                  data-drawer-id="product-drawer-{{ product.id }}-{{ block.id }}"
+                                  data-product-url="{{ product.url }}"
+                                >
+                                  {{- product.title | truncate: 30 -}}
+                                </product-drawer-opener>
+
+                                <div class="product-price">
+                                  {{ product.selected_or_first_available_variant.price | money }}
+                                </div>
+
+                                <div class="product-atc">
+                                  {% assign product_form_id = 'quick-add-' | append: section.id | append: product.id %}
+                                  <product-form data-section-id="{{ section.id }}">
+                                    {%- form 'product',
+                                      product,
+                                      id: product_form_id,
+                                      class: 'form',
+                                      novalidate: 'novalidate',
+                                      data-type: 'add-to-cart-form'
+                                    -%}
+                                      <input
+                                        type="hidden"
+                                        name="id"
+                                        value="{{ product.selected_or_first_available_variant.id }}"
+                                        class="product-variant-id"
+                                        {% if product.selected_or_first_available_variant.available == false %}
+                                          disabled
+                                        {% endif %}
+                                      >
+                                      <button
+                                        id="{{ product_form_id }}-submit"
+                                        type="submit"
+                                        name="add"
+                                        class="mini-atc-btn"
+                                        aria-haspopup="dialog"
+                                        aria-labelledby="{{ product_form_id }}-submit title-{{ section.id }}-{{ product.id }}"
+                                        aria-live="polite"
+                                        data-sold-out-message="true"
+                                        {% if product.selected_or_first_available_variant.available == false %}
+                                          disabled
+                                        {% endif %}
+                                      >
+                                        <span>
+                                          {%- if product.selected_or_first_available_variant.available -%}
+                                            {{ 'products.product.add_to_cart' | t }}
+                                          {%- else -%}
+                                            {{ 'products.product.sold_out' | t }}
+                                          {%- endif -%}
+                                        </span>
+                                        <span class="sold-out-message hidden">
+                                          {{ 'products.product.sold_out' | t }}
+                                        </span>
+                                        {%- render 'loading-spinner' -%}
+                                      </button>
+                                    {%- endform -%}
+                                  </product-form>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        {%- endif -%}
+                      {%- endfor -%}
+                    </div>
+                  </div>
+                </carousel-component>
+
+                {%- for card_product in block.settings.products_list limit: 3 -%}
+                  <product-drawer
+                    class="product-drawer"
+                    id="product-drawer-{{ card_product.id }}-{{ block.id }}"
+                    data-open="false"
+                  >
+                    <product-info-drawer
+                      class="product-info-drawer"
+                      id="product-drawer-{{ card_product.id }}-{{ block.id }}"
+                      data-open="false"
+                    >
+                      <div class="product-info-drawer-container"></div>
+                      <button class="product-drawer-close-btn" aria-label="Close">&times;</button>
+                    </product-info-drawer>
+                  </product-drawer>
+                {% endfor %}
+              </div>
+            </div>
+          {%- endfor -%}
+        </div>
+      </div>
+      <div class="swiper-button-next nav-btn nav-next"></div>
+      <div class="swiper-button-prev nav-btn nav-prev"></div>
+    </carousel-component>
+  </div>
+</modal-content>
+
+{% schema %}
+{
+  "name": "Video shoppable",
+  "tag": "section",
+  "class": "section",
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "Section Settings"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "title",
+      "default": "Video Collection",
+      "label": "Heading"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "options": [
+        {
+          "value": "h2",
+          "label": "Small"
+        },
+        {
+          "value": "h1",
+          "label": "Medium"
+        },
+        {
+          "value": "h0",
+          "label": "Large"
+        },
+        {
+          "value": "hxl",
+          "label": "Extra Large"
+        }
+      ],
+      "default": "h1",
+      "label": "Heading size"
+    },
+    {
+      "type": "richtext",
+      "id": "description",
+      "label": "Description"
+    },
+    {
+      "type": "select",
+      "id": "description_style",
+      "label": "Description style",
+      "options": [
+        {
+          "value": "body",
+          "label": "Body"
+        },
+        {
+          "value": "subtitle",
+          "label": "Subtitle"
+        },
+        {
+          "value": "uppercase",
+          "label": "Uppercase"
+        }
+      ],
+      "default": "body"
+    },
+    {
+      "type": "color_scheme",
+      "id": "color_scheme",
+      "label": "Color scheme",
+      "default": "scheme-1"
+    },
+    {
+      "type": "checkbox",
+      "id": "page_width",
+      "default": false,
+      "label": "Page width"
+    },
+    {
+      "type": "header",
+      "content": "Carousel Settings"
+    },
+    {
+      "type": "range",
+      "id": "desktop_per_page",
+      "min": 1,
+      "max": 6,
+      "step": 1,
+      "default": 3,
+      "label": "Slides per page (desktop)"
+    },
+    {
+      "type": "range",
+      "id": "mobile_per_page",
+      "min": 1,
+      "max": 3,
+      "step": 1,
+      "default": 1,
+      "label": "Slides per page (mobile)"
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_autoplay",
+      "default": true,
+      "label": "Enable autoplay"
+    },
+    {
+      "type": "range",
+      "id": "autoplay_speed",
+      "min": 2,
+      "max": 10,
+      "step": 1,
+      "default": 5,
+      "unit": "s",
+      "label": "Autoplay speed"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_navigation",
+      "default": true,
+      "label": "Show navigation"
+    },
+    {
+      "type": "header",
+      "content": "Section padding"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Top padding",
+      "default": 36
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 100,
+      "step": 4,
+      "unit": "px",
+      "label": "Bottom padding",
+      "default": 36
+    }
+  ],
+  "blocks": [
+    {
+      "type": "video_slide",
+      "name": "Video Slide",
+      "settings": [
+        {
+          "type": "header",
+          "content": "Video"
+        },
+        {
+          "type": "video",
+          "id": "video",
+          "label": "Video file"
+        },
+        {
+          "type": "header",
+          "content": "Featured Products"
+        },
+        {
+          "type": "product_list",
+          "id": "products_list",
+          "label": "Product list"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Video shoppable",
+      "blocks": [
+        {
+          "type": "video_slide"
+        },
+        {
+          "type": "video_slide"
+        },
+        {
+          "type": "video_slide"
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

@@ -1,0 +1,93 @@
+{% comment %}
+  Renders an responsive image.
+
+  Accepts:
+    - mobileImage: {Object} Image object for mobile
+    - desktopImage: {Object} Image object for desktop
+    - pictureClass: {String} Class to add to the picture tag.
+    -  {String} Class to add to the image tag.
+    - forloop: {Object} Forloop object to lazy load image (Optional)
+
+  Usage:
+  {% render 'responsive-picture'
+    forloop: forloop,
+    mobileImage: block.settings.image_mobile,
+    desktopImage: block.settings.image_desktop,
+    pictureClass: 'media media--square',
+    imageClass: 'tw-w-full tw-max-h-[60rem]'
+  %}
+{% endcomment %}
+
+{%- liquid
+  assign loading = 'lazy'
+  assign fetchpriority = 'auto'
+  assign forloop_index = forloop.index | default: 1
+
+  case template.name
+    when 'index'
+      assign section_lcp_index = 1
+    when 'product'
+      assign section_lcp_index = 1
+    when 'collection'
+      assign section_lcp_index = 1
+  endcase
+
+  if section.location == 'template' and section.index == section_lcp_index and forloop_index == 1
+    assign fetchpriority = 'high'
+    assign loading = 'eager'
+  elsif section.index == section_lcp_index and forloop_index > 1
+    assign fetchpriority = 'low'
+  elsif section.location == 'template' and section.index < 3
+    assign loading = 'eager'
+  endif
+-%}
+
+<picture class="{{ pictureClass }}">
+  {% if mobileImage %}
+    <source
+      media="(max-width: 749px)"
+      srcset="
+        {%- if mobileImage.width >= 375 -%}{{ mobileImage | image_url: width: 375 }} 375w,{%- endif -%}
+        {%- if mobileImage.width >= 550 -%}{{ mobileImage | image_url: width: 550 }} 550w,{%- endif -%}
+        {%- if mobileImage.width >= 750 -%}{{ mobileImage | image_url: width: 750 }} 750w,{%- endif -%}
+        {%- if mobileImage.width >= 1100 -%}{{ mobileImage | image_url: width: 1100 }} 1100w,{%- endif -%}
+        {%- if mobileImage.width >= 1500 -%}{{ mobileImage | image_url: width: 1500 }} 1500w,{%- endif -%}
+        {%- if mobileImage.width >= 1780 -%}{{ mobileImage | image_url: width: 1780 }} 1780w,{%- endif -%}
+        {%- if mobileImage.width >= 2000 -%}{{ mobileImage | image_url: width: 2000 }} 2000w,{%- endif -%}
+        {%- if mobileImage.width >= 3000 -%}{{ mobileImage | image_url: width: 3000 }} 3000w,{%- endif -%}
+        {%- if mobileImage.width >= 3840 -%}{{ mobileImage | image_url: width: 3840 }} 3840w,{%- endif -%}
+        {{ mobileImage | image_url }} {{ mobileImage.width | append: 'w' }}
+      "
+      sizes="{{ mobileSize | default: '100vw' }}"
+    >
+  {% endif %}
+
+  <source
+    {% if mobileImage %}
+      media="(min-width: 750px)"
+    {% endif %}
+    srcset="
+      {%- if desktopImage.width >= 375 -%}{{ desktopImage | image_url: width: 375 }} 375w,{%- endif -%}
+      {%- if desktopImage.width >= 550 -%}{{ desktopImage | image_url: width: 550 }} 550w,{%- endif -%}
+      {%- if desktopImage.width >= 750 -%}{{ desktopImage | image_url: width: 750 }} 750w,{%- endif -%}
+      {%- if desktopImage.width >= 1100 -%}{{ desktopImage | image_url: width: 1100 }} 1100w,{%- endif -%}
+      {%- if desktopImage.width >= 1500 -%}{{ desktopImage | image_url: width: 1500 }} 1500w,{%- endif -%}
+      {%- if desktopImage.width >= 1780 -%}{{ desktopImage | image_url: width: 1780 }} 1780w,{%- endif -%}
+      {%- if desktopImage.width >= 2000 -%}{{ desktopImage | image_url: width: 2000 }} 2000w,{%- endif -%}
+      {%- if desktopImage.width >= 3000 -%}{{ desktopImage | image_url: width: 3000 }} 3000w,{%- endif -%}
+      {%- if desktopImage.width >= 3840 -%}{{ desktopImage | image_url: width: 3840 }} 3840w,{%- endif -%}
+      {{ desktopImage | image_url }} {{ desktopImage.width | append: 'w' }}
+    "
+    sizes="{{ desktopSize | default: '100vw' }}"
+  >
+
+  <img
+    src="{{ desktopImage | image_url: width: 1500 }}"
+    loading="{{ loading }}"
+    fetchpriority="{{ fetchpriority }}"
+    class="{{ imageClass }}"
+    width="{{ desktopImage.width }}"
+    height="{{ desktopImage.width | divided_by: desktopImage.aspect_ratio | round }}"
+    alt="{{ alt | default: desktopImage.alt | escape }}"
+  >
+</picture>
