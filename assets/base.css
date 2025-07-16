@@ -468,7 +468,7 @@ table:not([class]) th {
 a:empty,
 ul:empty,
 dl:empty,
-div:empty,
+div:empty:not(.nav-btn),
 section:empty,
 article:empty,
 p:empty,
@@ -3594,4 +3594,8 @@ details-disclosure > details {
   100% {
     transform: translateX(100%) scaleX(0);
   }
+}
+
+body:has(.video-modal.active) {
+  overflow: hidden;
 }

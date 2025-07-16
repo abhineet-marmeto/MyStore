@@ -39,6 +39,9 @@
       <script src="{{ 'animations.js' | asset_url }}" defer="defer"></script>
     {%- endif -%}
 
+    {{ 'swiper-bundle.min.css' | asset_url | stylesheet_tag }}
+    <script src="{{ 'swiper-bundle.min.js' | asset_url }}"></script>
+
     {{ content_for_header }}
 
     {%- liquid
@@ -296,13 +299,14 @@
         document.documentElement.classList.add('shopify-design-mode');
       }
     </script>
-  <script type="text/javascript">if(typeof window.hulkappsWishlist === 'undefined') {
-                            window.hulkappsWishlist = {};
-                        }
-                        window.hulkappsWishlist.baseURL = '/apps/advanced-wishlist/api';
-                        window.hulkappsWishlist.hasAppBlockSupport = '1';
-                        </script>
-</head>
+    <script type="text/javascript">
+      if (typeof window.hulkappsWishlist === 'undefined') {
+        window.hulkappsWishlist = {};
+      }
+      window.hulkappsWishlist.baseURL = '/apps/advanced-wishlist/api';
+      window.hulkappsWishlist.hasAppBlockSupport = '1';
+    </script>
+  </head>
 
   <body class="gradient{% if settings.animations_hover_elements != 'none' %} animate--hover-{{ settings.animations_hover_elements }}{% endif %}">
     <a class="skip-to-content-link button visually-hidden" href="#MainContent">
@@ -378,6 +382,6 @@
     {%- if settings.cart_type == 'drawer' -%}
       <script src="{{ 'cart-drawer.js' | asset_url }}" defer="defer"></script>
     {%- endif -%}
-  {% render 'hulkappsWishlistPopup' %}
-</body>
+    {% render 'hulkappsWishlistPopup' %}
+  </body>
 </html>

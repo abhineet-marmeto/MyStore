@@ -9,6 +9,89 @@
  */
 {
   "sections": {
+    "shoppable_video_QyPFkz": {
+      "type": "shoppable-video",
+      "blocks": {
+        "video_slide_LEDmcd": {
+          "type": "video_slide",
+          "settings": {
+            "video": "shopify://files/videos/7615505-hd_1080_1920_30fps.mp4",
+            "products_list": [
+              "add-on-two",
+              "bb-product-3",
+              "bb-product-5"
+            ]
+          }
+        },
+        "video_slide_CzqTQH": {
+          "type": "video_slide",
+          "settings": {
+            "video": "shopify://files/videos/7857988-uhd_2160_3840_24fps.mp4",
+            "products_list": [
+              "gucci-aviator-blue",
+              "gucci-rectangle-blue",
+              "bb-product-4"
+            ]
+          }
+        },
+        "video_slide_QeCUTM": {
+          "type": "video_slide",
+          "settings": {
+            "video": "shopify://files/videos/8005701-uhd_2160_3840_25fps.mp4",
+            "products_list": [
+              "gucci-square-brown",
+              "oakley-cat-eye-black",
+              "oakley-cat-eye-blue"
+            ]
+          }
+        },
+        "video_slide_7rxQgx": {
+          "type": "video_slide",
+          "settings": {
+            "video": "shopify://files/videos/8392764-hd_1080_1920_25fps.mp4",
+            "products_list": [
+              "ray-ban-rectangle-blue",
+              "red-light-therapy",
+              "ray-ban-round-gold"
+            ]
+          }
+        },
+        "video_slide_mGLRFi": {
+          "type": "video_slide",
+          "settings": {
+            "video": "shopify://files/videos/8005697-uhd_2160_3840_25fps.mp4",
+            "products_list": [
+              "versace-rectangle-brown",
+              "versace-square-gold",
+              "versace-round-black"
+            ]
+          }
+        }
+      },
+      "block_order": [
+        "video_slide_LEDmcd",
+        "video_slide_CzqTQH",
+        "video_slide_QeCUTM",
+        "video_slide_7rxQgx",
+        "video_slide_mGLRFi"
+      ],
+      "name": "Video shoppable",
+      "settings": {
+        "title": "Video Collection",
+        "heading_size": "h1",
+        "description": "",
+        "description_style": "body",
+        "color_scheme": "",
+        "page_width": true,
+        "desktop_per_page": 4,
+        "mobile_per_page": 2,
+        "enable_autoplay": false,
+        "autoplay_speed": 5,
+        "show_navigation": true,
+        "padding_top": 36,
+        "padding_bottom": 36
+      }
+    },
     "image_banner": {
       "type": "image-banner",
       "blocks": {
@@ -52,7 +135,7 @@
       "type": "featured-collection",
       "settings": {
         "collection": "all",
-        "products_to_show": 8,
+        "products_to_show": 19,
         "title": "Featured products",
         "heading_size": "h2",
         "description": "",
@@ -78,6 +161,7 @@
     }
   },
   "order": [
+    "shoppable_video_QyPFkz",
     "image_banner",
     "featured_collection"
   ]
