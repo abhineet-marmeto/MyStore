@@ -296,13 +296,14 @@
         document.documentElement.classList.add('shopify-design-mode');
       }
     </script>
-  <script type="text/javascript">if(typeof window.hulkappsWishlist === 'undefined') {
-                            window.hulkappsWishlist = {};
-                        }
-                        window.hulkappsWishlist.baseURL = '/apps/advanced-wishlist/api';
-                        window.hulkappsWishlist.hasAppBlockSupport = '1';
-                        </script>
-</head>
+    <script type="text/javascript">
+      if (typeof window.hulkappsWishlist === 'undefined') {
+        window.hulkappsWishlist = {};
+      }
+      window.hulkappsWishlist.baseURL = '/apps/advanced-wishlist/api';
+      window.hulkappsWishlist.hasAppBlockSupport = '1';
+    </script>
+  </head>
 
   <body class="gradient{% if settings.animations_hover_elements != 'none' %} animate--hover-{{ settings.animations_hover_elements }}{% endif %}">
     <a class="skip-to-content-link button visually-hidden" href="#MainContent">
@@ -318,6 +319,36 @@
     <main id="MainContent" class="content-for-layout focus-none" role="main" tabindex="-1">
       {{ content_for_layout }}
     </main>
+
+    <script>
+      window.freebieConfig = {
+        enabled: {{ settings.enable_freebies | default: false }},
+        valueFreebies: [
+          {
+            threshold: Number({{ settings.cart_value_threshold_1 | default: "null" }}),
+            variantId: Number({{ settings.freebie_product_1.selected_or_first_available_variant.id | default: "null" }}),
+            inStock: Boolean({{ settings.freebie_product_1.selected_or_first_available_variant.available | default: false }})
+          },
+          {
+            threshold: Number({{ settings.cart_value_threshold_2 | default: "null" }}),
+            variantId: Number({{ settings.freebie_product_2.selected_or_first_available_variant.id | default: "null" }}),
+            inStock: Boolean({{ settings.freebie_product_2.selected_or_first_available_variant.available | default: false }})
+          },
+          {
+            threshold: Number({{ settings.cart_value_threshold_3 | default: "null" }}),
+            variantId: Number({{ settings.freebie_product_3.selected_or_first_available_variant.id | default: "null" }}),
+            inStock: Boolean({{ settings.freebie_product_3.selected_or_first_available_variant.available | default: false }})
+          }
+        ],
+        productUnlock: {
+          triggerProductId: Number({{ settings.unlock_trigger_product.id | default: "null" }}),
+          freebieVariantId: Number({{ settings.unlocked_freebie_product.selected_or_first_available_variant.id | default: "null" }}),
+          inStock: Boolean({{ settings.unlocked_freebie_product.selected_or_first_available_variant.available | default: false }})
+        }
+      };
+    </script>
+
+    <freebie-cart-auto-sync hidden></freebie-cart-auto-sync>
 
     {% sections 'footer-group' %}
 
@@ -369,6 +400,8 @@
         recipientFormCollapsed: `{{ 'recipient.form.collapsed' | t }}`,
         countrySelectorSearchCount: `{{ 'localization.country_results_count' | t: count: '[count]' }}`,
       };
+
+      window.cart = {{ cart | json }};
     </script>
 
     {%- if settings.predictive_search_enabled -%}
@@ -378,6 +411,6 @@
     {%- if settings.cart_type == 'drawer' -%}
       <script src="{{ 'cart-drawer.js' | asset_url }}" defer="defer"></script>
     {%- endif -%}
-  {% render 'hulkappsWishlistPopup' %}
-</body>
+    {% render 'hulkappsWishlistPopup' %}
+  </body>
 </html>

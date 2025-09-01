@@ -292,3 +292,203 @@ if (!customElements.get('cart-note')) {
     }
   );
 }
+
+const CART_EVENTS = [
+  {
+    event: 'cartUpdate',
+    eventType: 'PUB_SUB_EVENTS',
+    handler: debounce(syncWindowCart, 200),
+  },
+  {
+    event: 'cartError',
+    eventType: 'PUB_SUB_EVENTS',
+    handler: debounce(syncWindowCart, 200),
+  }
+];
+
+CART_EVENTS.forEach(({ event, eventType, handler }) => {
+  if (eventType === 'PUB_SUB_EVENTS' && typeof PUB_SUB_EVENTS?.[event] !== 'undefined') {
+    subscribe(PUB_SUB_EVENTS[event], handler);
+  }
+
+  if (eventType === 'DOM_EVENT') {
+    window.addEventListener(event, handler);
+  }
+});
+
+function syncWindowCart(event) {
+  fetch('/cart.js')
+    .then((res) => res.json())
+    .then((data) => {
+      window.cart = data;
+      if (event?.source !== 'freebie-cart-sync') {
+        publish(PUB_SUB_EVENTS.windowCartUpdated, {
+          source: 'window-cart-sync',
+          cartData: data
+        });
+      }
+    })
+    .catch((err) => console.error('Failed to fetch /cart.js', err));
+}
+
+
+class FreebieCartAutoSync extends HTMLElement {
+  constructor() {
+    super();
+    this.freebiesConfig = window.freebieConfig || {};
+    this.processing = false;
+    this.unsubscribe = null;
+    this.cartItems = null;
+  }
+
+  connectedCallback() {
+    if (!this.freebiesConfig.enabled) return;
+    this.cartItems = document.querySelector('cart-items') || document.querySelector('cart-drawer-items');
+    if (!this.cartItems) return;
+    this.cartValueFreebies = this.freebiesConfig.valueFreebies || [];
+    this.unsubscribe = typeof subscribe === 'function'
+      ? subscribe(PUB_SUB_EVENTS.cartUpdate, this.handleCartSync.bind(this))
+      : null;
+  }
+
+  disconnectedCallback() {
+    if (typeof this.unsubscribe === 'function') this.unsubscribe();
+  }
+
+  async handleCartSync() {
+    if (this.processing) return;
+    this.processing = true;
+
+    try {
+      const cart = await this.fetchCart();
+      if (!cart) throw new Error('Cart fetch failed');
+      window.cart = cart;
+
+      const changes = this.calculateFreebieChanges(cart);
+
+      if (changes.toAdd.length > 0 || changes.toRemove.length > 0) {
+        await this.applyChanges(changes);
+        await this.refreshCart();
+      }
+    } catch (error) {
+      console.error('[FreebieCartAutoSync] Error:', error);
+    } finally {
+      this.processing = false;
+    }
+  }
+
+  async fetchCart() {
+    try {
+      const res = await fetch('/cart.js');
+      if (!res.ok) throw new Error('Network error');
+      return await res.json();
+    } catch (err) {
+      console.error('[FreebieCartAutoSync] Failed to fetch cart:', err);
+      return null;
+    }
+  }
+
+  calculateFreebieChanges(cart) {
+    const cartTotal = Number(cart.total_price) / 100;
+    const items = Array.isArray(cart.items) ? cart.items : [];
+    const freebieItems = items.filter(item => item.properties?.['Freebie product'] === true);
+
+    const toAdd = [];
+    const toRemove = [];
+
+    this.cartValueFreebies.forEach(rule => {
+      if (!rule.variantId || typeof rule.threshold !== 'number') return;
+      const hasFreebie = freebieItems.some(item => item.variant_id === rule.variantId);
+
+      if (cartTotal >= rule.threshold && !hasFreebie && rule.inStock) {
+        toAdd.push(rule.variantId);
+      } else if (cartTotal < rule.threshold && hasFreebie) {
+        const freebieItem = freebieItems.find(item => item.variant_id === rule.variantId);
+        if (freebieItem) toRemove.push(freebieItem.key);
+      }
+    });
+
+    const unlock = this.freebiesConfig.productUnlock;
+    if (unlock && unlock.triggerProductId && unlock.freebieVariantId) {
+      const hasTrigger = items.some(item => item.product_id === unlock.triggerProductId);
+      const hasUnlockFreebie = freebieItems.some(item => item.variant_id === unlock.freebieVariantId);
+
+      if (!hasUnlockFreebie && unlock.inStock && hasTrigger) {
+        toAdd.push(unlock.freebieVariantId);
+      } else if (hasUnlockFreebie && !hasTrigger) {
+        const freebieItem = freebieItems.find(item => item.variant_id === unlock.freebieVariantId);
+        if (freebieItem) toRemove.push(freebieItem.key);
+      }
+    }
+
+    return { toAdd, toRemove };
+  }
+
+  async applyChanges({ toAdd, toRemove }) {
+    const operations = [];
+
+    if (toRemove.length > 0) {
+      const updates = {};
+      toRemove.forEach(key => { updates[key] = 0; });
+      operations.push(
+        fetch('/cart/update.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ updates })
+        })
+      );
+    }
+
+    if (toAdd.length > 0) {
+      const items = toAdd.map(variantId => ({
+        id: variantId,
+        quantity: 1,
+        properties: { 'Freebie product': true }
+      }));
+      operations.push(
+        fetch('/cart/add.js', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items })
+        })
+      );
+    }
+
+    if (operations.length > 0) {
+      await Promise.all(operations);
+    }
+  }
+
+  async refreshCart() {
+    if (!this.cartItems || typeof this.cartItems.getSectionsToRender !== 'function') return;
+
+    try {
+      const sectionsToRender = this.cartItems.getSectionsToRender().map(s => s.section).join(',');
+      const [cartData, sectionsResponse] = await Promise.all([
+        this.fetchCart(),
+        fetch(`${routes.cart_url}?sections=${sectionsToRender}`).then(res => res.json())
+      ]);
+      if (!cartData) return;
+      window.cart = cartData;
+
+      const isEmpty = cartData.item_count === 0;
+      this.cartItems.classList.toggle('is-empty', isEmpty);
+
+      const cartFooter = document.getElementById('main-cart-footer');
+      const cartDrawer = document.querySelector('cart-drawer');
+      if (cartFooter) cartFooter.classList.toggle('is-empty', isEmpty);
+      if (cartDrawer) cartDrawer.classList.toggle('is-empty', isEmpty);
+
+      this.cartItems.getSectionsToRender().forEach(section => {
+        const element = document.getElementById(section.id)?.querySelector(section.selector) || document.getElementById(section.id);
+        if (element && sectionsResponse[section.section]) {
+          element.innerHTML = this.cartItems.getSectionInnerHTML(sectionsResponse[section.section], section.selector);
+        }
+      });
+    } catch (error) {
+      console.error('[FreebieCartAutoSync] Refresh error:', error);
+    }
+  }
+}
+
+customElements.define('freebie-cart-auto-sync', FreebieCartAutoSync);
