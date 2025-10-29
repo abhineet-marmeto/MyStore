@@ -141,6 +141,16 @@
       }
     },
     "content_for_index": [],
+    "blocks": {
+      "10557767768680663964": {
+        "type": "shopify://apps/recurpay-subscriptions-app/blocks/recurpay-widget/c600a513-dad8-4030-8697-de47c18881f2",
+        "disabled": false,
+        "settings": {
+          "multiply_price_with_quantity": true,
+          "show_price_in_frequency_dropdown": true
+        }
+      }
+    },
     "color_schemes": {
       "scheme-1": {
         "settings": {
