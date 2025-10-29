@@ -99,10 +99,29 @@
         "padding_top": 36,
         "padding_bottom": 28
       }
+    },
+    "176172367308871197": {
+      "type": "apps",
+      "blocks": {
+        "recurpay_subscriptions_app_recurpay_app_block_widget_4ULT8N": {
+          "type": "shopify://apps/recurpay-subscriptions-app/blocks/recurpay-app-block-widget/c600a513-dad8-4030-8697-de47c18881f2",
+          "settings": {
+            "multiply_price_with_quantity": false,
+            "show_price_in_frequency_dropdown": true
+          }
+        }
+      },
+      "block_order": [
+        "recurpay_subscriptions_app_recurpay_app_block_widget_4ULT8N"
+      ],
+      "settings": {
+        "include_margins": true
+      }
     }
   },
   "order": [
     "main",
-    "related-products"
+    "related-products",
+    "176172367308871197"
   ]
 }
