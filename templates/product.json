@@ -34,6 +34,12 @@
             "swatch_shape": "circle"
           }
         },
+        "add_ons_BnDWek": {
+          "type": "add-ons",
+          "settings": {
+            "heading": "Add-ons"
+          }
+        },
         "quantity_selector": {
           "type": "quantity_selector",
           "settings": {}
@@ -61,6 +67,7 @@
         "title",
         "price",
         "variant_picker",
+        "add_ons_BnDWek",
         "quantity_selector",
         "buy_buttons",
         "description",

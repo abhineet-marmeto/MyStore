@@ -1,0 +1,86 @@
+{
+  "article": [],
+  "blog": [],
+  "collection": [
+    {
+      "key": "col_faq",
+      "namespace": "custom",
+      "name": "col FAQ",
+      "description": "",
+      "type": {
+        "name": "list.metaobject_reference",
+        "category": "REFERENCE"
+      }
+    },
+    {
+      "key": "collection_bundle",
+      "namespace": "custom",
+      "name": "Collection bundle type",
+      "description": "SeCrEt_KeY",
+      "type": {
+        "name": "metaobject_reference",
+        "category": "REFERENCE"
+      }
+    },
+    {
+      "key": "test_variant_selector",
+      "namespace": "custom",
+      "name": "Test variant selector",
+      "description": "",
+      "type": {
+        "name": "list.variant_reference",
+        "category": "REFERENCE"
+      }
+    }
+  ],
+  "company": [],
+  "company_location": [],
+  "location": [],
+  "market": [],
+  "order": [],
+  "page": [],
+  "product": [
+    {
+      "key": "quantity-based",
+      "namespace": "volume-discount",
+      "name": "Volume discount",
+      "description": "",
+      "type": {
+        "name": "json",
+        "category": "JSON"
+      }
+    },
+    {
+      "key": "text_placement_personalization",
+      "namespace": "custom",
+      "name": "Text placement_personalization",
+      "description": "",
+      "type": {
+        "name": "mixed_reference",
+        "category": "REFERENCE"
+      }
+    },
+    {
+      "key": "personalization_text_direction",
+      "namespace": "custom",
+      "name": "Personalization Text Direction",
+      "description": "Choose text alignment to control available directions in the personalization customizer.",
+      "type": {
+        "name": "mixed_reference",
+        "category": "REFERENCE"
+      }
+    },
+    {
+      "key": "add_on_products",
+      "namespace": "custom",
+      "name": "Add-on products",
+      "description": "",
+      "type": {
+        "name": "list.product_reference",
+        "category": "REFERENCE"
+      }
+    }
+  ],
+  "variant": [],
+  "shop": []
+}
