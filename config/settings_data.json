@@ -149,6 +149,18 @@
           "multiply_price_with_quantity": true,
           "show_price_in_frequency_dropdown": true
         }
+      },
+      "3667842014806057753": {
+        "type": "shopify://apps/one-click-upsell/blocks/app-embed/bfe6e378-b73a-4871-b8d3-7d6ede22678e",
+        "disabled": false,
+        "settings": {
+          "allowed_templates": ""
+        }
+      },
+      "11753626725791430220": {
+        "type": "shopify://apps/one-click-upsell/blocks/cart-drawer/bfe6e378-b73a-4871-b8d3-7d6ede22678e",
+        "disabled": false,
+        "settings": {}
       }
     },
     "color_schemes": {
