@@ -1,0 +1,32 @@
+{% liquid
+  assign add_on_products = product.metafields.custom.add_on_products.value
+  assign add_on_products_count = 0
+  for add_on_product in add_on_products
+    assign add_on_products_count = add_on_products_count | plus: 1
+  endfor
+%}
+
+<div class="product-add-ons__wrapper">
+  {% if add_on_products_count > 0 %}
+    <div class="product-add-ons__title">
+      {{ block_obj.settings.heading }}
+    </div>
+    <product-add-on-form class="product-add-on__container" data-form-id="{{ product_form_id }}" data-product-name="{{ product.title |  append: ' ' |  append: product.selected_or_first_available_variant.title }}" >
+      {% for add_on_product in add_on_products %}
+        <div class="product-add-on">
+          <input
+            type="checkbox"
+            name="properties[Add-on]"
+            id="add-on-{{ add_on_product.id }}"
+            value="{{ add_on_product.selected_or_first_available_variant.id }}"
+            data-add-on-handle="{{ add_on_product.handle | escape }}"
+            data-add-on-price="{{ add_on_product.selected_or_first_available_variant.price }}"
+          >
+          <label for="add-on-{{ add_on_product.id }}">
+            {{- add_on_product.title }} + {{ add_on_product.price | money -}}
+          </label>
+        </div>
+      {% endfor %}
+    </product-add-on-form>
+  {% endif %}
+</div>

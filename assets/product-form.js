@@ -7,6 +7,7 @@ if (!customElements.get('product-form')) {
 
         this.form = this.querySelector('form');
         this.variantIdInput.disabled = false;
+        this.addOnForm = document.body.querySelector('product-add-on-form');
         this.form.addEventListener('submit', this.onSubmitHandler.bind(this));
         this.cart = document.querySelector('cart-notification') || document.querySelector('cart-drawer');
         this.submitButton = this.querySelector('[type="submit"]');
@@ -31,6 +32,16 @@ if (!customElements.get('product-form')) {
         config.headers['X-Requested-With'] = 'XMLHttpRequest';
         delete config.headers['Content-Type'];
 
+        let selectedAddOnItems = '';
+        if (this.addOnForm) {
+          let selectedAddOnInputs = this.addOnForm.querySelectorAll('input[type="checkbox"]:checked');
+          if (selectedAddOnInputs.length > 0) {
+            selectedAddOnItems = Array.from(selectedAddOnInputs)
+              .map((input, index) => `${index + 1}. ${input.dataset.addOnHandle}`)
+              .join(', ');
+          }
+        }
+
         const formData = new FormData(this.form);
         if (this.cart) {
           formData.append(
@@ -38,6 +49,7 @@ if (!customElements.get('product-form')) {
             this.cart.getSectionsToRender().map((section) => section.id)
           );
           formData.append('sections_url', window.location.pathname);
+          if (selectedAddOnItems != '') formData.append('properties[Add-on]', selectedAddOnItems);
           this.cart.setActiveElement(document.activeElement);
         }
         config.body = formData;
@@ -45,6 +57,9 @@ if (!customElements.get('product-form')) {
         fetch(`${routes.cart_add_url}`, config)
           .then((response) => response.json())
           .then((response) => {
+            
+            if (!response.status) this.form.dispatchEvent(new CustomEvent('product-form:submitted'));
+
             if (response.status) {
               publish(PUB_SUB_EVENTS.cartError, {
                 source: 'product-form',
@@ -139,4 +154,107 @@ if (!customElements.get('product-form')) {
       }
     }
   );
+}
+
+
+class ProductAddOnForm extends HTMLElement {
+  constructor() {
+    super();
+    this.mainProductForm = null;
+  }
+
+  connectedCallback() {
+    const mainProductName = this.dataset.productName;
+    const mainFormId = this.dataset.formId;
+    if (!mainFormId) return;
+
+    this.mainProductForm = document.getElementById(mainFormId);
+    if (!this.mainProductForm) return;
+
+    this.cart = document.querySelector('cart-notification') || document.querySelector('cart-drawer');
+    this.allAddOnInputs = this.querySelectorAll('input[type="checkbox"]');
+    if (this.allAddOnInputs.length === 0) return;
+    this.mainProductForm.addEventListener('product-form:submitted', (e) => this.onMainFormSubmit(e, mainProductName));
+    this.allAddOnInputs.forEach((addOnInput) => addOnInput.addEventListener('change', (e) => {
+      this.updateProductInfo(e);
+    }));
+
+    this.variantChangeUnsubscriber = subscribe(PUB_SUB_EVENTS.variantChange, () => {
+      this.allAddOnInputs.forEach(input => {
+        input.checked = false;
+      });
+    });
+  }
+
+  updateProductInfo(event) {
+    const checkedAddOns = this.querySelectorAll('input[type="checkbox"]:checked');
+    let totalAddOnPrice = 0;
+    checkedAddOns.forEach(input => {
+      totalAddOnPrice += parseFloat(input.dataset.addOnPrice || 0);
+    });
+
+    const productRegularPriceAllEle = document.querySelectorAll('.price-item [data-variant-regular-price]');
+    productRegularPriceAllEle.forEach((ele) => {
+      const basePrice = parseFloat(ele.dataset.variantRegularPrice || 0);
+      const newPrice = ((basePrice + totalAddOnPrice) / 100).toFixed(2);
+
+      const match = ele.textContent.match(/\d/);
+      if (match) {
+        const index = match.index;
+        ele.textContent = ele.textContent.slice(0, index) + newPrice;
+      }
+    });
+
+    const productSalePriceAllEle = document.querySelectorAll('.price-item [data-variant-sale-price]');
+    productSalePriceAllEle.forEach((ele) => {
+      const baseSalePrice = parseFloat(ele.dataset.variantSalePrice || 0);
+      const newSalePrice = ((baseSalePrice + totalAddOnPrice) / 100).toFixed(2);
+
+      const match = ele.textContent.match(/\d/);
+      if (match) {
+        const index = match.index;
+        ele.textContent = ele.textContent.slice(0, index) + newSalePrice;
+      }
+    });
+  }
+
+  async onMainFormSubmit(event, mainProductName) {
+
+    const selectedAddOnInputs = this.querySelectorAll('input[type="checkbox"]:checked');
+    if (selectedAddOnInputs.length === 0) return;
+    event.preventDefault();
+    try {
+      const addOnItems = Array.from(selectedAddOnInputs).map(input => ({
+        id: input.value,
+        quantity: 1,
+        properties: {
+          'Main product': mainProductName,
+        }
+      }));
+
+      await fetch('/cart/add.js', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ items: addOnItems })
+      });
+
+      selectedAddOnInputs.forEach(input => {
+        input.checked = false;
+      });
+
+      const sections = this.cart.getSectionsToRender().map(section => section.id).join(',');
+      const res = await fetch(`/cart?sections=${sections}`);
+      const cartSections = await res.json();
+
+      if (this.cart && typeof this.cart.renderContents === 'function') {
+        this.cart.renderContents({ sections: cartSections });
+      }
+    } catch (error) {
+      console.error(error);
+      alert('There was a problem adding items to the cart.');
+    }
+  }
+}
+if (!customElements.get('product-add-on-form')) {
+  customElements.define('product-add-on-form', ProductAddOnForm);
 }
